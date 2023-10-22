@@ -1,3 +1,4 @@
+import { WebSocketServer } from "ws";
 import bodyParser from "body-parser";
 import cors from "cors";
 import express from "express";
@@ -18,7 +19,16 @@ for (const routeName of fs.readdirSync("src/routes")) {
 }
 
 db.sync().then(() => {
-  app.listen(process.env.PORT!, async () => {
+  const server = app.listen(process.env.PORT!, async () => {
     console.log(`Listening on port ${[process.env.PORT!]}`);
+  });
+
+  const wss = new WebSocketServer({ server });
+
+  wss.on("connection", (ws) => {
+    ws.on("error", console.error);
+    ws.on("message", (data) => {
+      console.log("Recieved %s", data);
+    });
   });
 });
