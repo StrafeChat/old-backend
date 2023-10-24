@@ -107,7 +107,7 @@ class User extends Model {
   declare locale: string;
 
   @Column({
-    type: DataType.DATEONLY,
+    type: DataType.DATE,
     defaultValue: Date.now(),
   })
   declare lastLogin: Date | null;
