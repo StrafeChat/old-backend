@@ -1,8 +1,8 @@
 import { Router } from "express";
 import bcrypt from "bcrypt";
-import Generator from "../util/Generator";
-import Validator, { LoginData, RegisterData } from "../util/Validator";
-import User from "../database/models/User";
+import Generator from "../../util/Generator";
+import Validator, { LoginData, RegisterData } from "../../util/Validator";
+import User from "../../database/models/User";
 
 const router = Router();
 
