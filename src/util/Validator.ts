@@ -1,4 +1,5 @@
 import joi from "joi";
+import User from "../database/models/User";
 
 export interface RegisterData {
   email?: string;
@@ -93,5 +94,19 @@ export default class Validation {
           }),
       })
       .validate(data);
+  }
+
+  public static async token(input: string) {
+    const parts = input.split(".");
+    if (parts.length < 3) return { code: 401, message: "Access denied." };
+    if (parts.length > 3) return { code: 401, message: "Access denied." };
+
+    const id = atob(parts[0]);
+    const timestamp = parseInt(Buffer.from(parts[1]).toString("utf8"));
+    const secret = Buffer.from(parts[2]).toString("utf-8");
+
+    const user = await User.findByPk(id);
+
+    if(!user) return { code: 401, message: "Access denied." };
   }
 }
