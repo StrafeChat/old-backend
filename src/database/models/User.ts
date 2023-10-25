@@ -83,6 +83,12 @@ class User extends Model {
   declare dms: string[];
 
   @Column({
+    type: DataType.DATE,
+    allowNull: false,
+  })
+  declare dob: Date;
+
+  @Column({
     type: DataType.STRING,
     allowNull: true,
   })
@@ -110,7 +116,7 @@ class User extends Model {
     type: DataType.DATE,
     defaultValue: Date.now(),
   })
-  declare lastLogin: Date | null;
+  declare lastLogin: Date;
 
   @Column({
     type: DataType.ARRAY(DataType.STRING),

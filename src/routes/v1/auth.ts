@@ -81,6 +81,7 @@ router.post("/register", async (req, res) => {
         secret: secret,
         tag: data.tag,
         username: data.username,
+        dob: data.dob
       });
 
       if (!user)

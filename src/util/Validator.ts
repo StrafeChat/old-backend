@@ -1,5 +1,6 @@
 import joi from "joi";
 import User from "../database/models/User";
+import { WsErrors } from "../config/Errors";
 
 export interface RegisterData {
   email?: string;
@@ -7,6 +8,7 @@ export interface RegisterData {
   tag?: string;
   password?: string;
   locale?: string;
+  dob?: Date;
 }
 
 export interface LoginData {
@@ -64,7 +66,12 @@ export default class Validation {
               "Password can only contain letters (uppercase or lowercase) and digits (0-9). Special characters are not allowed.",
             "any.required": "Password is required.",
           }),
-        locale: joi.string().required(),
+        locale: joi.string().required().messages({
+          "any.required": "Locale is required.",
+        }),
+        dob: joi.date().required().messages({
+          "any.required": "dob (Date of birth) is required.",
+        }),
       })
       .validate(data);
   }
@@ -97,16 +104,28 @@ export default class Validation {
   }
 
   public static async token(input: string) {
+    console.log(input);
     const parts = input.split(".");
     if (parts.length < 3) return { code: 401, message: "Access denied." };
     if (parts.length > 3) return { code: 401, message: "Access denied." };
 
     const id = atob(parts[0]);
-    const timestamp = parseInt(Buffer.from(parts[1]).toString("utf8"));
-    const secret = Buffer.from(parts[2]).toString("utf-8");
+    const timestamp = parseInt(atob(parts[1]));
+    const secret = atob(parts[1]);
 
     const user = await User.findByPk(id);
 
-    if(!user) return { code: 401, message: "Access denied." };
+    if (!user)
+      return {
+        code: WsErrors.AUTHENTICATION_FAILED,
+        message: "Access denied.",
+      };
+    if (user.lastLogin.getTime() != timestamp)
+      return {
+        code: WsErrors.AUTHENTICATION_FAILED,
+        message: "Access denied.",
+      };
+
+    return { code: 200, data: user };
   }
 }

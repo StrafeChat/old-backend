@@ -1,18 +1,22 @@
 import { RawData, WebSocket, WebSocketServer } from "ws";
+import { WsOpCodes } from "./config/OpCodes";
+import { WsErrors } from "./config/Errors";
 import bodyParser from "body-parser";
 import cors from "cors";
 import express from "express";
 import db from "./database/connection";
 import dotenv from "dotenv";
 import fs from "fs";
-import { WsOpCodes } from "./config/OpCodes";
 import User from "./database/models/User";
 import Validator from "./util/Validator";
-import { WsErrors } from "./config/Errors";
 
-const clients = new Map<string, [User, WebSocket]>();
+const clients = new Map<
+  WebSocket,
+  { timer: NodeJS.Timeout | null; user: User | null }
+>();
 
 const app = express();
+const heartbeatInterval = 10000;
 
 dotenv.config();
 
@@ -39,9 +43,10 @@ db.sync({ alter: true }).then(() => {
   const wss = new WebSocketServer({ server });
 
   wss.on("connection", (client) => {
+    clients.set(client, { timer: null, user: null });
     sendData(client, {
       op: WsOpCodes.HELLO,
-      data: { heartbeatInterval: 45000 },
+      data: { heartbeatInterval },
     });
     client.on("error", console.error);
     client.on("message", (data) => {
@@ -58,16 +63,57 @@ const handleWsMessage = async (client: WebSocket, rawData: RawData) => {
   switch (op) {
     case WsOpCodes.HEARTBEAT:
       sendData(client, { op: WsOpCodes.HEARTBEAT_ACK, data: null });
+      const clt = clients.get(client);
+      if (clt) clt.timer?.refresh();
       break;
     case WsOpCodes.IDENTIFY:
       if (!data.token)
         client.close(
-          WsOpCodes.IDENTIFY,
+          WsErrors.AUTHENTICATION_FAILED,
           "The account token sent with your identify payload is incorrect."
         );
       const validation = await Validator.token(data.token);
       if (validation?.code != 200)
         client.close(validation?.code, validation?.message);
+
+      clients.set(client, {
+        timer: setTimeout(async () => {
+          client.close(
+            WsErrors.SESSION_TIMED_OUT,
+            "You couldn't keep up with strafe, please try reconnecting."
+          );
+          const user = clients.get(client)?.user;
+          user!.status = {
+            name: "offline",
+          };
+          await user?.save();
+          clients.delete(client);
+        }, heartbeatInterval + 1000),
+        user: validation.data!,
+      });
+
+      validation.data!.status = {
+        name: "online",
+      };
+
+      const user = await validation.data?.save();
+
+      client.send(
+        JSON.stringify({
+          op: WsOpCodes.DISPATCH,
+          data: {
+            id: user?.id,
+            avatar: user?.avatar,
+            banner: user?.banner,
+            bot: user?.bot,
+            createdAt: user?.createdAt,
+            displayName: user?.displayName,
+            tag: user?.tag,
+            username: user?.username,
+          },
+          event: "READY",
+        })
+      );
       break;
     default:
       client.close(
