@@ -44,4 +44,4 @@ DB_DATABASE=strafe
 Currently the backend supports the following routes:
 - **POST** `/v1/auth/login` - Used for logging.
 - **POST** `/v1/auth/register` - User for creating an account.
-- **GET** `/v1/users/@me` = Used to send you your personal user data.
+- **GET** `/v1/users/@me` - Used to send you your personal user data.
