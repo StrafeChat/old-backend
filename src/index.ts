@@ -83,6 +83,7 @@ const handleWsMessage = async (client: WebSocket, rawData: RawData) => {
             "You couldn't keep up with strafe, please try reconnecting."
           );
           const user = clients.get(client)?.user;
+          if (!user) return;
           user!.status = {
             name: "offline",
           };
@@ -91,6 +92,8 @@ const handleWsMessage = async (client: WebSocket, rawData: RawData) => {
         }, heartbeatInterval + 1000),
         user: validation.data!,
       });
+
+      if (!validation.data) return;
 
       validation.data!.status = {
         name: "online",

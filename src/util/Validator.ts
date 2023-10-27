@@ -1,6 +1,7 @@
 import joi from "joi";
 import User from "../database/models/User";
 import { WsErrors } from "../config/Errors";
+import { NextFunction, Request, Response } from "express";
 
 export interface RegisterData {
   email?: string;
@@ -104,14 +105,19 @@ export default class Validation {
   }
 
   public static async token(input: string) {
-    console.log(input);
+    if (!input)
+      return {
+        code: WsErrors.AUTHENTICATION_FAILED,
+        message: "Access denied.",
+      };
+
     const parts = input.split(".");
     if (parts.length < 3) return { code: 401, message: "Access denied." };
     if (parts.length > 3) return { code: 401, message: "Access denied." };
 
     const id = atob(parts[0]);
     const timestamp = parseInt(atob(parts[1]));
-    const secret = atob(parts[1]);
+    const secret = atob(parts[2]);
 
     const user = await User.findByPk(id);
 
@@ -120,12 +126,51 @@ export default class Validation {
         code: WsErrors.AUTHENTICATION_FAILED,
         message: "Access denied.",
       };
-    if (user.lastLogin.getTime() != timestamp)
+    if (user.lastLogin.getTime() != timestamp || user.secret != secret)
       return {
         code: WsErrors.AUTHENTICATION_FAILED,
         message: "Access denied.",
       };
 
     return { code: 200, data: user };
+  }
+
+  public static async verifyToken(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    if (!req.headers["authorization"])
+      return {
+        code: WsErrors.AUTHENTICATION_FAILED,
+        message: "Access denied.",
+      };
+
+    const parts = req.headers["authorization"].split(".");
+    if (parts.length < 3)
+      return res.status(401).json({ code: 401, message: "Access denied." });
+    if (parts.length > 3)
+      return res.status(401).json({ code: 401, message: "Access denied." });
+
+    const id = atob(parts[0]);
+    const timestamp = parseInt(atob(parts[1]));
+    const secret = atob(parts[2]);
+
+    const user = await User.findByPk(id);
+
+    if (!user)
+      return res.status(401).json({
+        code: 401,
+        message: "Access denied.",
+      });
+
+    if (user.lastLogin.getTime() != timestamp || user.secret != secret)
+      return res.status(401).json({
+        code: 401,
+        message: "Access denied.",
+      });
+
+    req.body.user = user;
+    next();
   }
 }

@@ -1,8 +1,12 @@
 import { Router } from "express";
 import bcrypt from "bcrypt";
+import dotenv from "dotenv";
+import fs from "fs";
 import Generator from "../../util/Generator";
 import Validator, { LoginData, RegisterData } from "../../util/Validator";
 import User from "../../database/models/User";
+
+dotenv.config();
 
 const router = Router();
 
@@ -73,6 +77,7 @@ router.post("/register", async (req, res) => {
     });
     try {
       const user = await User.create({
+        avatar: `${process.env.CDN_URL}/avatars/${id}`,
         id: id,
         bot: false,
         email: data.email,
@@ -81,7 +86,7 @@ router.post("/register", async (req, res) => {
         secret: secret,
         tag: data.tag,
         username: data.username,
-        dob: data.dob
+        dob: data.dob,
       });
 
       if (!user)
@@ -90,6 +95,24 @@ router.post("/register", async (req, res) => {
           message:
             "Something went wrong when trying to create your account, please try again.",
         });
+
+      fs.readFile(
+        `src/resources/avatars/${`avatar${
+          Math.floor(Math.random() * (7 - 1 + 1)) + 1
+        }.png`}`,
+        async (err, data) => {
+          await fetch(`${process.env.CDN_URL}/avatars/${id}`, {
+            method: "POST",
+            headers: {
+              Authorization: token,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              data: data.toString("base64"),
+            }),
+          });
+        }
+      );
 
       res.status(200).json({ code: 200, data: token });
     } catch (err) {
