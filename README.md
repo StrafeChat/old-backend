@@ -1,6 +1,6 @@
 # ⚠️ Warning:
 
-**Strafe `Backend` and all other projects related to this such as `Frontend, CDN, etc.` are still under heavy development. We reccommend that you not try to use it for personal use until development has progressed more and bugs are less likely to happen.\_**
+**Strafe `Backend` and all other projects related to this such as `Frontend, CDN, etc.` are still under heavy development. We reccommend that you not try to use it for personal use until development has progressed more and bugs are less likely to happen.**
 
 # Strafe Backend
 
@@ -42,6 +42,7 @@ DB_DATABASE=strafe
 ## Routes
 
 Currently the backend supports the following routes:
+
 - **POST** `/v1/auth/login` - Used for logging.
 - **POST** `/v1/auth/register` - User for creating an account.
 - **GET** `/v1/users/@me` - Used to send you your personal user data.
