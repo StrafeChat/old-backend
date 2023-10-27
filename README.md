@@ -8,7 +8,7 @@
 
 ```bash
 # Clone the repo
-git clone https://github.com/StrafeChat/frontend
+git clone https://github.com/StrafeChat/backend
 
 # Install all dependencies
 pnpm i
