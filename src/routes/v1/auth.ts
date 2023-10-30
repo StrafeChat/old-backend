@@ -87,6 +87,7 @@ router.post("/register", async (req, res) => {
         tag: data.tag,
         username: data.username,
         dob: data.dob,
+        lastLogin: new Date(timestamp),
       });
 
       if (!user)
