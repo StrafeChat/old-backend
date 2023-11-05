@@ -111,6 +111,7 @@ const handleWsMessage = async (client: WebSocket, rawData: RawData) => {
             bot: user?.bot,
             createdAt: user?.createdAt,
             displayName: user?.displayName,
+            preferences: user?.preferences,
             tag: user?.tag,
             username: user?.username,
           },

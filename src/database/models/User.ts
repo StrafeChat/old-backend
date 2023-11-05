@@ -9,16 +9,20 @@ import {
 
 export interface UserStatus {
   name:
-    | "online"
-    | "offline"
-    | "idle"
-    | "dnd"
-    | "coding"
-    | "streaming"
-    | "sleeping"
-    | "custom";
+  | "online"
+  | "offline"
+  | "idle"
+  | "dnd"
+  | "coding"
+  | "streaming"
+  | "sleeping"
+  | "custom";
   icon?: string;
   text?: string;
+}
+
+interface Preferences {
+  serverListPos: string;
 }
 
 @Table({
@@ -98,12 +102,6 @@ class User extends Model {
     type: DataType.ARRAY(DataType.STRING),
     defaultValue: [],
   })
-  declare friends: string[];
-
-  @Column({
-    type: DataType.ARRAY(DataType.STRING),
-    defaultValue: [],
-  })
   declare guilds: string[];
 
   @Column({
@@ -129,6 +127,15 @@ class User extends Model {
     allowNull: true,
   })
   declare password: string | null;
+
+  @Column({
+    type: DataType.JSON,
+    defaultValue: {
+      serverListPos: "left"
+    },
+    allowNull: false,
+  })
+  declare preferences: Preferences;
 
   @Column({
     type: DataType.STRING,
