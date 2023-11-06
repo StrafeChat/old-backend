@@ -155,3 +155,5 @@ const handleWsMessage = async (client: WebSocket, rawData: RawData) => {
 const sendData = (ws: WebSocket, { op, data }: { op: number; data: any }) => {
   ws.send(JSON.stringify({ op, data }));
 };
+
+export { clients, sockets };
