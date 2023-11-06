@@ -40,6 +40,13 @@ class User extends Model {
 
   @Column({
     type: DataType.STRING,
+    defaultValue: "red",
+    allowNull: false,
+  })
+  declare accentColor: string;
+
+  @Column({
+    type: DataType.STRING,
     defaultValue: null,
   })
   declare avatar: string | null;

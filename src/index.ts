@@ -9,11 +9,14 @@ import dotenv from "dotenv";
 import fs from "fs";
 import User from "./database/models/User";
 import Validator from "./util/Validator";
+import FriendRequest from "./database/models/FriendRequest";
+import Generator from "./util/Generator";
 
 const clients = new Map<
   WebSocket,
   { timer: NodeJS.Timeout | null; user: User | null }
 >();
+const sockets = new Map<string, WebSocket>();
 
 const app = express();
 const heartbeatInterval = 10000;
@@ -60,6 +63,8 @@ const handleWsMessage = async (client: WebSocket, rawData: RawData) => {
     rawData.toString("utf-8")
   );
 
+  let user: User | undefined | null = undefined;
+
   switch (op) {
     case WsOpCodes.HEARTBEAT:
       sendData(client, { op: WsOpCodes.HEARTBEAT_ACK, data: null });
@@ -82,7 +87,7 @@ const handleWsMessage = async (client: WebSocket, rawData: RawData) => {
             WsErrors.SESSION_TIMED_OUT,
             "You couldn't keep up with strafe, please try reconnecting."
           );
-          const user = clients.get(client)?.user;
+          user = clients.get(client)?.user;
           if (!user) return;
           user!.status = {
             name: "offline",
@@ -99,18 +104,22 @@ const handleWsMessage = async (client: WebSocket, rawData: RawData) => {
         name: "online",
       };
 
-      const user = await validation.data?.save();
+      user = await validation.data?.save();
+
+      sockets.set(user.id, client);
 
       client.send(
         JSON.stringify({
           op: WsOpCodes.DISPATCH,
           data: {
             id: user?.id,
+            accentColor: user?.accentColor,
             avatar: user?.avatar,
             banner: user?.banner,
             bot: user?.bot,
             createdAt: user?.createdAt,
             displayName: user?.displayName,
+            email: user?.email,
             preferences: user?.preferences,
             tag: user?.tag,
             username: user?.username,
@@ -118,6 +127,21 @@ const handleWsMessage = async (client: WebSocket, rawData: RawData) => {
           event: "READY",
         })
       );
+      break;
+    case WsOpCodes.FRIEND_REQUEST:
+      user = clients.get(client)!.user;
+      if (user) {
+        if (data.from !== user.id) return;
+        if (await FriendRequest.findOne({ where: { senderId: user.id, recieverId: data.to } })) return;
+        const request = await FriendRequest.create({
+          id: Generator.generateSnowflake(),
+          senderId: user.id,
+          recieverId: data.to,
+          status: "pending"
+        })
+        const socket = sockets.get(user.id);
+        if (socket) sendData(socket, { op: WsOpCodes.FRIEND_REQUEST, data: request });
+      }
       break;
     default:
       client.close(

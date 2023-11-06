@@ -67,6 +67,12 @@ export enum WsOpCodes {
    * Sent by server
    */
   HEARTBEAT_ACK = 10,
+
+  /**
+   * Sent and recieved by/to the client so that friend requests update in live time
+   * Send by server and client
+   */
+  FRIEND_REQUEST = 11,
 }
 
 export enum VoiceOpCodes {
