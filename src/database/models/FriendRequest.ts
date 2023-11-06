@@ -27,8 +27,8 @@ class FriendRequest extends Model {
     @Column
     declare receiverId: string;
 
-    @BelongsTo(() => User, 'recieverId')
-    declare reciever: User;
+    @BelongsTo(() => User, 'receiverId')
+    declare receiver: User;
 
     @ForeignKey(() => User)
     @Column
