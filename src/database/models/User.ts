@@ -8,6 +8,7 @@ import {
 } from "sequelize-typescript";
 
 export interface UserStatus {
+  online: boolean,
   name:
   | "online"
   | "offline"
@@ -153,6 +154,7 @@ class User extends Model {
   @Column({
     type: DataType.JSON,
     defaultValue: {
+      online: true,
       name: "offline",
       icon: null,
       text: null,

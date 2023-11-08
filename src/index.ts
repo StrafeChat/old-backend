@@ -89,8 +89,9 @@ const handleWsMessage = async (client: WebSocket, rawData: RawData) => {
           );
           user = clients.get(client)?.user;
           if (!user) return;
-          user!.status = {
-            name: "offline",
+          user.status = {
+            name: user.status.name,
+            online: false,
           };
           await user?.save();
           clients.delete(client);
@@ -100,8 +101,9 @@ const handleWsMessage = async (client: WebSocket, rawData: RawData) => {
 
       if (!validation.data) return;
 
-      validation.data!.status = {
-        name: "online",
+      validation.data.status = {
+        name: validation.data.status.name,
+        online: true,
       };
 
       user = await validation.data?.save();
@@ -121,6 +123,7 @@ const handleWsMessage = async (client: WebSocket, rawData: RawData) => {
             displayName: user?.displayName,
             email: user?.email,
             preferences: user?.preferences,
+            status: user?.status,
             tag: user?.tag,
             username: user?.username,
           },
@@ -141,6 +144,17 @@ const handleWsMessage = async (client: WebSocket, rawData: RawData) => {
         })
         const socket = sockets.get(user.id);
         if (socket) sendData(socket, { op: WsOpCodes.FRIEND_REQUEST, data: request });
+      }
+      break;
+    case WsOpCodes.PRESENCE_UPDATE:
+      user = clients.get(client)!.user;
+      if (user && data.status) {
+        user.status = {
+          ...user.status,
+          name: data.status
+        };
+
+        user.save().then((saved) => sendData(client, { op: WsOpCodes.PRESENCE_UPDATE, data: saved.status }));
       }
       break;
     default:

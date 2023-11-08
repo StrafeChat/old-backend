@@ -24,14 +24,20 @@ class FriendRequest extends Model {
     declare id: string;
 
     @ForeignKey(() => User)
-    @Column
+    @Column({
+        allowNull: false,
+        type: DataType.STRING
+    })
     declare receiverId: string;
 
     @BelongsTo(() => User, 'receiverId')
     declare receiver: User;
 
     @ForeignKey(() => User)
-    @Column
+    @Column({
+        allowNull: false,
+        type: DataType.STRING
+    })    
     declare senderId: string;
 
     @BelongsTo(() => User, 'senderId')
