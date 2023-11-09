@@ -11,6 +11,7 @@ import User from "./database/models/User";
 import Validator from "./util/Validator";
 import FriendRequest from "./database/models/FriendRequest";
 import Generator from "./util/Generator";
+import { Op } from "sequelize";
 
 const clients = new Map<
   WebSocket,
@@ -154,7 +155,24 @@ const handleWsMessage = async (client: WebSocket, rawData: RawData) => {
           name: data.status
         };
 
-        user.save().then((saved) => sendData(client, { op: WsOpCodes.PRESENCE_UPDATE, data: saved.status }));
+        user.save().then(async (saved) => {
+          const data = { status: saved.status, user: saved };
+          sendData(client, { op: WsOpCodes.PRESENCE_UPDATE, data });
+          
+          FriendRequest.findAll({
+            where: {
+              [Op.or]: [
+                { receiverId: saved.id, status: "accepted" },
+                { senderId: saved.id, status: "accepted" },
+              ]
+            }
+          }).then((requests) => {
+            for (const request of requests) {
+              const user = sockets.get(saved.id != request.senderId ? request.senderId : request.receiverId);
+              if (user) sendData(user, { op: WsOpCodes.PRESENCE_UPDATE, data });
+            }
+          })
+        });
       }
       break;
     default:
