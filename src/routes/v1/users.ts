@@ -6,10 +6,69 @@ import User from "../../database/models/User";
 import { sockets } from "../..";
 import { WsOpCodes } from "../../config/OpCodes";
 import Generator from "../../util/Generator";
+import Channel from "../../database/models/Channel";
+import ChannelRecipient from "../../database/models/ChannelRecipients";
 const router = express.Router();
 
 router.get("/@me", Validator.verifyToken, (req, res) => {
   res.status(200).json({ code: 200, data: req.body.user.toJSON() });
+});
+
+router.get("/@me/channels", Validator.verifyToken, async (req, res) => {
+  const data = await Channel.findAll({ where: { type: 0 }, include: [{ model: ChannelRecipient, where: { userId: req.body.user.id } }] });
+  res.status(200).json({ code: 200, data });
+});
+
+router.post("/@me/channels", Validator.verifyToken, async (req, res) => {
+  if (!req.body.receiverId) return res.status(400).json({ code: 400, message: "Receiver id is required." });
+  if (req.body.receiverId == req.body.user.id) return res.status(400).json({ code: 400, message: "You cannot create a dm for only you :/" });
+
+  try {
+    const existingDMChannel = await Channel.findOne({
+      where: {
+        type: 0,
+      },
+      include: [
+        {
+          model: ChannelRecipient,
+          where: { userId: req.body.user.id },
+        },
+        {
+          model: ChannelRecipient,
+          where: { userId: req.body.receiverId },
+        },
+      ],
+    });
+
+    if (existingDMChannel) return res.status(409).json({ code: 409, message: "A dm already exists between you and that user!" });
+
+    const receiver = await User.findByPk(req.body.receiverId);
+    if (!receiver) return res.status(404).json({ code: 404, message: "User was not found." });
+
+    const channelId = Generator.generateSnowflake();
+
+    const receiverRecipient = await ChannelRecipient.create({
+      channelId,
+      userId: receiver.id,
+    });
+
+    const senderRecipient = await ChannelRecipient.create({
+      channelId,
+      userId: req.body.user.id
+    })
+
+    const channel = await Channel.create({
+      id: Generator.generateSnowflake(),
+      recipients: [senderRecipient, receiverRecipient],
+      totalMessagesSent: 0,
+      type: 0,
+    });
+
+    res.status(201).json({ code: 201, data: channel });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ code: 500, message: "Something went wrong when trying to create the dm channel with that user!" })
+  }
 });
 
 router.get("/", Validator.verifyToken, async (req, res) => {
