@@ -11,6 +11,7 @@ const sequelize = new Sequelize({
   password: process.env.DB_PASSWORD,
   port: parseInt(process.env.DB_PORT!),
   username: process.env.DB_USER,
+  logging: false
 });
 
 export default sequelize;

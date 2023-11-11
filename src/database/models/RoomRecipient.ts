@@ -1,19 +1,21 @@
-
 import { BelongsTo, Column, DataType, ForeignKey, Model, Table } from "sequelize-typescript";
-import Channel from "./Channel";
 import User from "./User";
+import Room from "./Room";
 
 @Table({
-    tableName: "channel-recipients",
-    modelName: "ChannelRecipient"
+    tableName: "room_recipients",
+    modelName: "RoomRecipient"
 })
-class ChannelRecipient extends Model {
-    //@ForeignKey(() => Channel)
-   /* @Column({
+class RoomRecipient extends Model {
+    @ForeignKey(() => Room)
+    @Column({
         allowNull: false,
         type: DataType.STRING,
     })
-    declare channelId: string;
+    declare roomId: string;
+
+    @BelongsTo(() => Room)
+    declare room: Room;
 
     @ForeignKey(() => User)
     @Column({
@@ -22,12 +24,8 @@ class ChannelRecipient extends Model {
     })
     declare userId: string;
 
-    //@BelongsTo(() => Channel)
-   // declare channel: Channel;
-
     @BelongsTo(() => User)
     declare user: User;
-    */
 }
 
-export default ChannelRecipient;
+export default RoomRecipient;
