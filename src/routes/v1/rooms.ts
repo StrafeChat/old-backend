@@ -1,0 +1,166 @@
+import express from "express";
+import Validation from "../../util/Validator";
+import Room from "../../database/models/Room";
+import Message from "../../database/models/Message";
+import Generator from "../../util/Generator";
+import { sockets } from "../..";
+import { WsOpCodes } from "../../config/OpCodes";
+import User from "../../database/models/User";
+const router = express.Router();
+
+router.post("/:roomId/messages", Validation.verifyToken, async (req, res) => {
+  if (!req.params.roomId)
+    return res.status(401).json({ code: 401, message: "Room ID is required!" });
+  const room = await Room.findByPk(req.params.roomId, {
+    include: [
+      {
+        model: User,
+        as: "recipients",
+      },
+    ],
+  });
+  if (!room)
+    return res.status(404).json({
+      code: 404,
+      message: "The room you were looking for does not exist.",
+    });
+
+  switch (room.type) {
+    case 0:
+      if (!room.recipients?.find((user) => user.id == req.body.user.id)) {
+        console.log("No Access!");
+        return res
+          .status(403)
+          .json({ code: 403, message: "You do not have access to this room." });
+      }
+
+      await Message.create({
+        id: Generator.generateSnowflake(),
+        authorId: req.body.user.id,
+        content: req.body.content,
+        embeds: req.body.embeds,
+        roomId: req.params.roomId,
+      }).then(async (message) => {
+        await message.reload({ include: User });
+        for (const user of room.recipients!) {
+          sockets.get(user.id)?.send(
+            JSON.stringify({
+              op: WsOpCodes.DISPATCH,
+              event: "MESSAGE_CREATE",
+              data: message,
+            })
+          );
+        }
+      });
+      break;
+    default:
+      res.status(403).json({
+        code: 403,
+        message: "This channel does not support message sending.",
+      });
+      break;
+  }
+});
+
+router.get("/:roomId/messages", Validation.verifyToken, async (req, res) => {
+  if (!req.params.roomId)
+    return res.status(401).json({ code: 401, message: "Room ID is required!" });
+
+  const room = await Room.findByPk(req.params.roomId, {
+    include: [
+      {
+        model: User,
+        as: "recipients",
+      },
+    ],
+  });
+
+  if (!room)
+    return res.status(404).json({
+      code: 404,
+      message: "The room you were looking for does not exist",
+    });
+
+  switch (room.type) {
+    case 0:
+      if (!room.recipients?.find((user) => user.id == req.body.user.id)) {
+        return res
+          .status(403)
+          .json({ code: 403, message: "You do not have access to this room." });
+      }
+      const messages = await Message.findAll({
+        where: {
+          roomId: req.params.roomId,
+        },
+        include: [
+          {
+            model: User,
+            as: "author",
+          },
+        ],
+        order: [["createdAt", "ASC"]],
+      });
+
+      return res.status(200).json({ code: 200, data: messages });
+    default:
+      res.status(403).json({
+        code: 403,
+        message: "This channel does not support message sending.",
+      });
+      break;
+  }
+});
+
+router.post("/:roomId/typing", Validation.verifyToken, async (req, res) => {
+  const room = await Room.findByPk(req.params.roomId, {
+    include: [
+      {
+        model: User,
+        as: "recipients",
+      },
+    ],
+  });
+
+  if (!room) {
+    return res.status(404).json({
+      code: 404,
+      message: "The room you were looking for does not exist",
+    });
+  }
+
+  switch (room.type) {
+    case 0:
+      if (!room.recipients?.find((user) => user.id == req.body.user.id)) {
+        return res
+          .status(403)
+          .json({ code: 403, message: "You do not have access to this room." });
+      }
+
+      for (const user of room.recipients!) {
+        sockets.get(user.id)?.send(
+          JSON.stringify({
+            op: WsOpCodes.DISPATCH,
+            event: "TYPING_UPDATE",
+            data: {
+              roomId: room.id,
+              username: req.body.user.username,
+              timestamp: Date.now(),
+            },
+          })
+        );
+      }
+
+      return res
+        .status(200)
+        .json({ code: 200, message: "Typing notification sent." });
+
+    default:
+      res.status(403).json({
+        code: 403,
+        message: "This channel does not support typing notifications.",
+      });
+      break;
+  }
+});
+
+export default router;

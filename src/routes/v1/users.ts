@@ -1,7 +1,7 @@
 import express from "express";
 import Validator from "../../util/Validator";
 import FriendRequest from "../../database/models/FriendRequest";
-import { Op } from "sequelize";
+import { Op, Sequelize } from "sequelize";
 import User from "../../database/models/User";
 import { sockets } from "../..";
 import { WsOpCodes } from "../../config/OpCodes";
@@ -67,16 +67,19 @@ router.post("/@me/rooms", Validator.verifyToken, async (req, res) => {
     const existingDMRoom = await Room.findOne({
       where: {
         type: 0,
+        [Op.and]: [
+          Sequelize.literal(
+            `EXISTS (SELECT 1 FROM "room_recipients" AS "rr" WHERE "rr"."roomId" = "Room"."id" AND "rr"."userId" = '${req.body.user.id}')`
+          ),
+          Sequelize.literal(
+            `EXISTS (SELECT 1 FROM "room_recipients" AS "rr" WHERE "rr"."roomId" = "Room"."id" AND "rr"."userId" = '${req.body.recipientId}')`
+          ),
+        ],
       },
       include: [
         {
           model: User,
           as: "recipients",
-          where: {
-            id: {
-              [Op.in]: [req.body.user.id, req.body.recipientId],
-            },
-          },
         },
       ],
     });
@@ -87,6 +90,7 @@ router.post("/@me/rooms", Validator.verifyToken, async (req, res) => {
       return res.status(409).json({
         code: 409,
         message: "A dm already exists between you and that user!",
+        data: { id: existingDMRoom.id },
       });
     }
 
