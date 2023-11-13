@@ -9,6 +9,7 @@ import User from "../../database/models/User";
 const router = express.Router();
 
 router.post("/:roomId/messages", Validation.verifyToken, async (req, res) => {
+  console.log(req.body.attachments)
   if (!req.params.roomId)
     return res.status(401).json({ code: 401, message: "Room ID is required!" });
   const room = await Room.findByPk(req.params.roomId, {
@@ -66,6 +67,15 @@ router.get("/:roomId/messages", Validation.verifyToken, async (req, res) => {
   if (!req.params.roomId)
     return res.status(401).json({ code: 401, message: "Room ID is required!" });
 
+  const page = parseInt(req.query.page as string);
+
+  if (isNaN(page))
+    return res
+      .status(401)
+      .json({ code: 401, message: "Page number is required!" });
+
+  const pageSize = 35;
+
   const room = await Room.findByPk(req.params.roomId, {
     include: [
       {
@@ -88,7 +98,7 @@ router.get("/:roomId/messages", Validation.verifyToken, async (req, res) => {
           .status(403)
           .json({ code: 403, message: "You do not have access to this room." });
       }
-      const messages = await Message.findAll({
+      const data = await Message.findAndCountAll({
         where: {
           roomId: req.params.roomId,
         },
@@ -98,10 +108,23 @@ router.get("/:roomId/messages", Validation.verifyToken, async (req, res) => {
             as: "author",
           },
         ],
-        order: [["createdAt", "ASC"]],
+        order: [["createdAt", "DESC"]],
+        offset: (page - 1) * pageSize,
+        limit: pageSize,
       });
 
-      return res.status(200).json({ code: 200, data: messages });
+      const resData = {
+        totalPages: Math.ceil(data?.count / pageSize),
+        totalSize: data.count,
+        data: data.rows,
+      };
+
+      if (page > resData.totalPages)
+        return res
+          .status(404)
+          .json({ code: 404, message: "Messages page not found." });
+
+      return res.status(200).json({ code: 200, data: resData.data.reverse() });
     default:
       res.status(403).json({
         code: 403,

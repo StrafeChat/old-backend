@@ -12,6 +12,16 @@ import Room from "./Room";
 import Space from "./Space";
 import User from "./User";
 
+export interface MessageEmbed {
+  title?: string;
+  description?: string;
+  color?: string;
+  footer?: {
+    text: string;
+    iconUrl: string;
+  };
+}
+
 @Table({
   timestamps: true,
   tableName: "messages",
@@ -29,8 +39,8 @@ class Message extends Model {
     type: DataType.STRING,
     allowNull: false,
   })
-  declare authorId: string | null;
-  
+  declare authorId: string;
+
   @BelongsTo(() => User, "authorId")
   declare author: User | null;
 
@@ -38,13 +48,13 @@ class Message extends Model {
     type: DataType.TEXT,
     defaultValue: "",
   })
-  declare content: string | null;
+  declare content: string;
 
   @Column({
     type: DataType.ARRAY(DataType.JSON),
     defaultValue: [],
   })
-  declare embeds: any[];
+  declare embeds: MessageEmbed[];
 
   @ForeignKey(() => Room)
   @Column({
