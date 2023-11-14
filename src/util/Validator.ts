@@ -57,14 +57,11 @@ export default class Validation {
           .min(8)
           .max(30)
           .trim()
-          .pattern(new RegExp("^[a-zA-Z0-9]"))
           .required()
           .messages({
             "string.min": "Password must be at least 8 characters long.",
             "string.max": "Password can have a maximum of 30 characters.",
             "string.trim": "Password cannot contain spaces.",
-            "string.pattern":
-              "Password can only contain letters (uppercase or lowercase) and digits (0-9). Special characters are not allowed.",
             "any.required": "Password is required.",
           }),
         locale: joi.string().required().messages({
@@ -90,14 +87,11 @@ export default class Validation {
           .min(8)
           .max(30)
           .trim()
-          .pattern(new RegExp("^[a-zA-Z0-9]"))
           .required()
           .messages({
             "string.min": "Password must be at least 8 characters long.",
             "string.max": "Password can have a maximum of 30 characters.",
             "string.trim": "Password cannot contain spaces.",
-            "string.pattern":
-              "Password can only contain letters (uppercase or lowercase) and digits (0-9). Special characters are not allowed.",
             "any.required": "Password is required.",
           }),
       })
