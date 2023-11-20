@@ -132,6 +132,7 @@ const handleWsMessage = async (client: WebSocket, rawData: RawData) => {
             createdAt: user?.createdAt,
             displayName: user?.displayName,
             email: user?.email,
+            locale: user?.locale,
             preferences: user?.preferences,
             status: user?.status,
             tag: user?.tag,
@@ -167,7 +168,7 @@ const handleWsMessage = async (client: WebSocket, rawData: RawData) => {
         user.save().then(async (saved) => {
           const data = { status: saved.status, user: saved };
           sendData(client, { op: WsOpCodes.PRESENCE_UPDATE, data });
-          
+
           FriendRequest.findAll({
             where: {
               [Op.or]: [

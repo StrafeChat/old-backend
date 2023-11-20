@@ -17,6 +17,7 @@ router.post(
     limit: 5,
     standardHeaders: "draft-7",
     legacyHeaders: false,
+    keyGenerator: (req, _res) => req.headers["authorization"]!
   }),
   async (req, res) => {
     console.log(req.body.content);
@@ -50,6 +51,15 @@ router.post(
             });
         }
 
+        const id = Generator.generateSnowflake();
+
+        res.status(202).send({
+          code: 202, data: {
+            id,
+            ...req.body
+          }
+        });
+
         await Message.create({
           id: Generator.generateSnowflake(),
           authorId: req.body.user.id,
@@ -68,7 +78,6 @@ router.post(
             );
           }
         });
-        res.status(200).send("Done!");
         break;
       default:
         res.status(403).json({
