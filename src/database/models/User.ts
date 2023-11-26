@@ -71,12 +71,6 @@ class User extends Model {
   declare bio: string | null;
 
   @Column({
-    type: DataType.ARRAY(DataType.STRING),
-    defaultValue: [],
-  })
-  declare blocked: string[];
-
-  @Column({
     type: DataType.BOOLEAN,
     allowNull: false,
   })
